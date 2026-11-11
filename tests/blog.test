@@ -1,6 +1,6 @@
 package require tcltest 2
 namespace import ::tcltest::*
-package require web-static-blog 0.1.1
+package require web-static-blog 0.1.2
 namespace eval fixture {}
 proc fixture::write {path text} {
     set ch [open $path w]; fconfigure $ch -encoding utf-8

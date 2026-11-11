@@ -11,9 +11,10 @@ proc ::web::static::blog::options {defaults args} {
     return $defaults
 }
 
-# Snapshot the trusted directory once per worker. Recreate the store to publish changes.
+# Directory stores retain the local behavior. Database stores query on demand.
 proc ::web::static::blog::create {args} {
-    set store [options {-directory {} -title Blog -images-directory {} -s3 {}} {*}$args]
+    set store [options {-connection {} -domain default -directory {} -title Blog -images-directory {} -s3 {}} {*}$args]
+    if {[dict get $store -connection] ne {}} {return [database_store $store]}
     set directory [dict get $store -directory]
     if {$directory eq {} || ![file isdirectory $directory] || [file type $directory] eq "link"} {
         fail 400 "-directory must be an existing content directory"
@@ -38,6 +39,7 @@ proc ::web::static::blog::canonical_path {path} {
 
 proc ::web::static::blog::load {store path} {
     canonical_path $path
+    if {[dict get $store -connection] ne {}} {return [database_load $store $path]}
     if {![dict exists $store items $path]} {fail 404 "content not found"}
     return [dict get $store items $path]
 }
@@ -53,7 +55,11 @@ proc ::web::static::blog::compare_items {left right} {
 proc ::web::static::blog::children {store path} {
     canonical_path $path
     set rows {}
-    dict for {key item} [dict get $store items] {
+    if {[dict get $store -connection] ne {}} {
+        set candidates [database_listing $store parent_path $path]
+    } else {set candidates [dict values [dict get $store items]]}
+    foreach item $candidates {
+        set key [dict get $item path]
         if {$key ne $path && [dict get $item parent_path] eq $path} {lappend rows $item}
     }
     return [lsort -command ::web::static::blog::compare_items $rows]
@@ -67,6 +73,9 @@ proc ::web::static::blog::compare_posts {left right} {
 
 proc ::web::static::blog::posts {store} {
     set rows {}
+    if {[dict get $store -connection] ne {}} {
+        return [lsort -command ::web::static::blog::compare_posts [database_listing $store item_type page]]
+    }
     dict for {path item} [dict get $store items] {
         if {[dict get $item item_type] eq "page"} {lappend rows $item}
     }

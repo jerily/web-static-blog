@@ -8,7 +8,8 @@ namespace eval ::web::static::blog {
     variable root [file dirname [file dirname [info script]]]
 }
 source [file join $::web::static::blog::root library content.tcl]
+source [file join $::web::static::blog::root library images.tcl]
 source [file join $::web::static::blog::root library templates.tcl]
 source [file join $::web::static::blog::root library http.tcl]
 source [file join $::web::static::blog::root library mount.tcl]
-package provide web-static-blog 0.1.0
+package provide web-static-blog 0.1.1

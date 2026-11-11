@@ -69,7 +69,7 @@ proc ::web::static::blog::view {config path} {
         dict set fields entries [rows_field $rows]
         set html [render_page $config index.html.jinja $fields]
     } else {
-        set markdownHtml [::cmark_gfm::render_gfm_html [dict get $item markdown]]
+        set markdownHtml [render_markdown $store $item]
         # The template renders the saved title; omit the Markdown's leading title.
         regsub {^<h1>.*?</h1>\n} $markdownHtml {} markdownHtml
         set fields [text_fields [dict create title $title \
@@ -78,7 +78,13 @@ proc ::web::static::blog::view {config path} {
             date [dict get $item published_at]]]
         set html [render_page $config item.html.jinja $fields]
     }
-    response 200 $html
+    set result [response 200 $html]
+    if {[dict exists $store -s3 http_endpoint] && [dict get $store -s3 http_endpoint] ne {}} {
+        set policy [dict get $result headers content-security-policy]
+        dict set result headers content-security-policy [string map \
+            [list "img-src 'self'" "img-src 'self' [dict get $store -s3 http_endpoint]"] $policy]
+    }
+    return $result
 }
 
 proc ::web::static::blog::dispatch {config action request context params} {

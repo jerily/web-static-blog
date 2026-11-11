@@ -13,7 +13,7 @@ proc ::web::static::blog::options {defaults args} {
 
 # Snapshot the trusted directory once per worker. Recreate the store to publish changes.
 proc ::web::static::blog::create {args} {
-    set store [options {-directory {} -title Blog} {*}$args]
+    set store [options {-directory {} -title Blog -images-directory {} -s3 {}} {*}$args]
     set directory [dict get $store -directory]
     if {$directory eq {} || ![file isdirectory $directory] || [file type $directory] eq "link"} {
         fail 400 "-directory must be an existing content directory"
@@ -25,7 +25,7 @@ proc ::web::static::blog::create {args} {
         markdown {} source_path {} published_at {}]
     scan $store [dict get $store -directory] {} / items
     dict set store items $items
-    return $store
+    return [prepare_images $store]
 }
 
 proc ::web::static::blog::canonical_path {path} {

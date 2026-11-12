@@ -14,4 +14,4 @@ source [file join $::web::static::blog::root library templates.tcl]
 source [file join $::web::static::blog::root library http.tcl]
 source [file join $::web::static::blog::root library mount.tcl]
 source [file join $::web::static::blog::root library sync.tcl]
-package provide web-static-blog 0.1.3
+package provide web-static-blog 0.1.4

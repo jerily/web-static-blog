@@ -1,6 +1,6 @@
 package require tcltest 2
 namespace import ::tcltest::*
-package require web-static-blog
+package require web-static-blog 0.1.5
 package provide awss3 1.0.17
 namespace eval sync_fixture {}
 namespace eval ::aws::s3 {}
@@ -97,12 +97,65 @@ test sync-update {existing readers see new content on their next query; domains 
     sync_fixture::write [file join $sync_fixture::root pages 2026-11-11-guide.md] {# Updated
 New text.}
     ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
-    set item [::web::static::blog::load $sync_fixture::store /2026-11-11-updated]
+    set item [::web::static::blog::load $sync_fixture::store /2026-11-11-guide]
     set listing [::web::static::blog::children $sync_fixture::store /]
     list [dict get $item title] [dict get [::web::static::blog::load $other /2026-11-11-guide] title] \
-        [catch {::web::static::blog::load $sync_fixture::store /2026-11-11-guide}] \
+        [string match {*New text.*} [::web::static::blog::render_markdown $sync_fixture::store $item]] \
         [dict exists [lindex $listing 0] markdown]
 } -cleanup sync_fixture::cleanup -result {Updated Guide 1 0}
+
+test sync-body-edit {same-title link edits reach existing readers after sync} -setup sync_fixture::setup -body {
+    set source [file join $sync_fixture::root pages 2026-11-11-guide.md]
+    sync_fixture::write $source {# Guide
+
+[Directory](/docs/ttrek-venv)}
+    ::web::static::blog::initdb $sync_fixture::db
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    set router [::tpathexp::router]
+    try {
+        ::web::static::blog::mount $router -store $sync_fixture::store -prefix /blog
+        set request {method GET path /blog/2026-11-11-guide}
+        set before [dict get [$router dispatch $request] body]
+        sync_fixture::write $source {# Guide
+
+[Directory](/docs/understanding-ttrek-venv)}
+        ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+        set after [dict get [$router dispatch $request] body]
+        list [string match {*href="/docs/ttrek-venv"*} $before] \
+            [string match {*href="/docs/understanding-ttrek-venv"*} $after] \
+            [string match {*href="/docs/ttrek-venv"*} $after] \
+            [llength [::web::static::blog::posts $sync_fixture::store]]
+    } finally {$router destroy}
+} -cleanup sync_fixture::cleanup -result {1 1 0 1}
+
+test sync-remove {deleted posts and folders disappear without affecting other domains} -setup sync_fixture::setup -body {
+    sync_fixture::write [file join $sync_fixture::root pages nested 2026-11-10-old.md] {# Old post}
+    ::web::static::blog::initdb $sync_fixture::db
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    set other [dict replace $sync_fixture::store -domain other]
+    ::web::static::blog::sync $other [file join $sync_fixture::root pages]
+    file delete [file join $sync_fixture::root pages 2026-11-11-guide.md]
+    file delete -force [file join $sync_fixture::root pages nested]
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    set errors {}
+    foreach path {/2026-11-11-guide /nested /nested/2026-11-10-old} {
+        catch {::web::static::blog::load $sync_fixture::store $path} message options
+        lappend errors [dict get $options -errorcode]
+    }
+    list [lsort -unique $errors] [::web::static::blog::posts $sync_fixture::store] \
+        [::web::static::blog::children $sync_fixture::store /] \
+        [llength [::web::static::blog::posts $other]]
+} -cleanup sync_fixture::cleanup -result {{{WEB STATIC_BLOG 404}} {} {} 2}
+
+test sync-migrate {sync removes legacy heading-based URLs} -setup sync_fixture::setup -body {
+    ::web::static::blog::initdb $sync_fixture::db
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    ::tpersist::_raw $sync_fixture::db {UPDATE web_static_blog_items SET path = '/2026-11-11-old-heading' WHERE path = '/2026-11-11-guide'}
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    list [dict get [::web::static::blog::load $sync_fixture::store /2026-11-11-guide] title] \
+        [catch {::web::static::blog::load $sync_fixture::store /2026-11-11-old-heading}] \
+        [llength [::web::static::blog::posts $sync_fixture::store]]
+} -cleanup sync_fixture::cleanup -result {Guide 1 1}
 
 test sync-failure {failed image uploads leave the existing database content unchanged} -setup sync_fixture::setup -body {
     ::web::static::blog::initdb $sync_fixture::db

@@ -28,7 +28,7 @@ ttrek install web-static-blog
 ```
 
 ```tcl
-package require web-static-blog 0.1.1
+package require web-static-blog 0.1.5
 set store [::web::static::blog::create -directory ./content/blog -title Blog]
 set router [::tpathexp::router]
 ::web::static::blog::mount $router -store $store -prefix /blog
@@ -44,9 +44,19 @@ A missing directory is an error; an empty directory serves an empty index.
 
 `.md` and `.markdown` files are read recursively; dotfiles are ignored, and symlinks
 are rejected. A file is limited to 1 MiB. The first Markdown heading supplies its
-title, falling back to the filename stem. Folder names and titles become lowercase
-ASCII URL slugs. Empty slugs become `blog-item`. Duplicate canonical paths fail.
-Blog filenames must start with a real YYYY-MM-DD date followed by a dash. URLs combine that date and title slug; the root index lists all posts newest first, including nested folders. Dates order posts; all included posts are immediately public.
+title, falling back to the filename stem after the date. Folder names and filename
+stems become lowercase ASCII URL slugs; spaces and dashes collapse, and punctuation
+is removed. The `.md` or `.markdown` extension is omitted. Empty slugs become
+`blog-item`. Duplicate canonical paths fail, but different files may share a heading.
+Blog filenames must start with a real YYYY-MM-DD date followed by a dash.
+The root index lists all posts newest first, including nested folders.
+Dates order posts; all included posts are immediately public.
+
+Since 0.1.5, `2026-11-13-release.md` headed `# A new release` is served at
+`/blog/2026-11-13-release`. Editing the heading keeps that URL. Before upgrading,
+rename existing files to match their current date-and-heading URL slugs to preserve
+incoming links. Sync removes old paths that no longer match a file; it does not
+create redirects.
 
 For source installation and tests:
 
@@ -181,8 +191,12 @@ query metadata without article bodies. Existing readers see synced changes on th
 next query. The host closes the connection when its worker stops.
 
 `sync` validates source files, prepares rendered Markdown and image keys, uploads
-missing or changed images, and replaces the domain's rows in one transaction. Image-upload
-failures leave the previous database content intact; completed S3 replacements remain. Expiring image URLs are signed
+missing or changed images, and replaces the domain's rows in one transaction.
+Body edits are imported even when the filename and heading stay the same. Posts
+and folders removed from the source directory disappear on the next successful
+sync; other domains are unaffected. This replaces current content rather than
+keeping a revision history.
+Image-upload failures leave the previous database content intact; completed S3 replacements remain. Expiring image URLs are signed
 when rendering a requested item. `initdb` is idempotent and never called by `sync`,
 store creation, mounting or request handling. Directory stores keep their original
 local behavior. There are no snapshot files to build, publish or load.

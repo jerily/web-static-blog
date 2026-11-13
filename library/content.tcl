@@ -141,7 +141,7 @@ proc ::web::static::blog::scan {store directory relative parent itemsVar} {
                 fail 400 "blog filenames must start with a valid YYYY-MM-DD- date: $source"
             }
             set title [title $markdown [string range $name 11 end]]
-            set pageSlug $date-[slug $title]
+            set pageSlug [slug [file rootname $name]]
             index_source items $prefix/$pageSlug [dict create parent_path $parent item_type page \
                 title $title markdown $markdown source_path $source published_at $date]
         }

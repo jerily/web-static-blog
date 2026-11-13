@@ -1,6 +1,6 @@
 package require tcltest 2
 namespace import ::tcltest::*
-package require web-static-blog 0.1.2
+package require web-static-blog 0.1.5
 namespace eval fixture {}
 proc fixture::write {path text} {
     set ch [open $path w]; fconfigure $ch -encoding utf-8
@@ -65,8 +65,8 @@ test content-6 {source symlinks are rejected} -setup fixture::setup -body {
     catch {::web::static::blog::create -directory $fixture::root} message options
     dict get $options -errorcode
 } -cleanup fixture::cleanup -result {WEB STATIC_BLOG 400}
-test content-7 {duplicate slugs abort loading} -setup fixture::setup -body {
-    fixture::write [file join $fixture::root 2026-11-07-duplicate.md] "# Guide"
+test content-7 {duplicate filename slugs abort loading} -setup fixture::setup -body {
+    fixture::write [file join $fixture::root 2026-11-07-Guide.markdown] "# Different title"
     catch {::web::static::blog::create -directory $fixture::root} message options
     dict get $options -errorcode
 } -cleanup fixture::cleanup -result {WEB STATIC_BLOG 409}
@@ -93,6 +93,17 @@ test content-10 {custom layout and multiple independent mounts} -setup fixture::
         list [string match {<header>A &amp; B*</article>*} [dict get $a body]] [dict get $b statusCode]
     } finally {$router destroy}
 } -cleanup fixture::cleanup -result {1 200}
+test content-filenames {dated filename stems determine paths independently of headings} -setup fixture::setup -body {
+    fixture::write [file join $fixture::root 2026-11-07-guide.md] {# Understanding the guide}
+    fixture::write [file join $fixture::root Folder {2026-11-07-Other Guide.markdown}] {# Understanding the guide}
+    fixture::write [file join $fixture::root 2026-11-07-untitled.md] {No heading here.}
+    set store [::web::static::blog::create -directory $fixture::root]
+    list [dict get [::web::static::blog::load $store /2026-11-07-guide] title] \
+        [dict get [::web::static::blog::load $store /folder/2026-11-07-other-guide] title] \
+        [dict get [::web::static::blog::load $store /2026-11-07-untitled] title] \
+        [catch {::web::static::blog::load $store /2026-11-07-understanding-the-guide}]
+} -cleanup fixture::cleanup -result {{Understanding the guide} {Understanding the guide} untitled 1}
+
 test dates-1 {dated posts are ordered across folders, with path tie-breaking} -setup fixture::setup -body {
     fixture::write [file join $fixture::root Folder 2026-11-08-later.md] "# Later"
     fixture::write [file join $fixture::root 2026-11-07-another.md] "# Another"

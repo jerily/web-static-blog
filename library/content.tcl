@@ -13,7 +13,7 @@ proc ::web::static::blog::options {defaults args} {
 
 # Directory stores retain the local behavior. Database stores query on demand.
 proc ::web::static::blog::create {args} {
-    set store [options {-connection {} -domain default -directory {} -title Blog -images-directory {} -s3 {}} {*}$args]
+    set store [options {-connection {} -domain default -directory {} -title Blog -images-directory {} -images-url-prefix {} -s3 {}} {*}$args]
     if {[dict get $store -connection] ne {}} {return [database_store $store]}
     set directory [dict get $store -directory]
     if {$directory eq {} || ![file isdirectory $directory] || [file type $directory] eq "link"} {

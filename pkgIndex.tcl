@@ -4,4 +4,4 @@
 
 # Register the package and load its dependencies.
 if {![package vsatisfies [package provide Tcl] 8.6-10]} {return}
-package ifneeded web-static-blog 0.1.6 [list source [file join $dir library web-static-blog.tcl]]
+package ifneeded web-static-blog 0.1.7 [list source [file join $dir library web-static-blog.tcl]]

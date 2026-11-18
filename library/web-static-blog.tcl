@@ -1,3 +1,4 @@
+package require web-static-blog::routes 1.0
 # 
 # Copyright Jerily LTD. All Rights Reserved.
 # SPDX-FileCopyrightText: 2026 Neofytos Dimitriou (neo@jerily.cy)
@@ -8,7 +9,6 @@
 package require Tcl 9.1
 package require cmark_gfm 0.1.0
 package require tpathexp 1.1.0
-package require jinja2 0.1.0
 package require tjson 1.0.26
 package require tpersist 0.1.4
 
@@ -21,4 +21,4 @@ source [file join $::web::static::blog::root library templates.tcl]
 source [file join $::web::static::blog::root library http.tcl]
 source [file join $::web::static::blog::root library mount.tcl]
 source [file join $::web::static::blog::root library sync.tcl]
-package provide web-static-blog 0.1.10
+package provide web-static-blog 0.1.11

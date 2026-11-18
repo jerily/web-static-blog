@@ -221,3 +221,14 @@ or embed template strings in the configuration. The host owns rendering caches
 and must validate the complete package/layout composition during packaging/CI.
 The existing `master_template`, `templates`, and `prepare_templates` APIs remain
 available for compatibility and artifact validation.
+
+`::web::static::blog::sync_prepared $store $items` imports trusted items from
+a directory store's `items` dictionary into a database store. It validates the
+records before replacing that domain, uses the destination store's image settings,
+and participates in the caller's transaction. It does not read files or upload
+images; the host must publish referenced assets before importing the snapshot.
+
+`::web::static::blog::latest_post $store` returns the first post in publication
+order, or an empty dictionary. Database stores select one metadata row using
+`published_at DESC, path ASC`, without loading article bodies or the full list.
+Directory stores use the same ordering as `posts`.

@@ -82,6 +82,16 @@ proc ::web::static::blog::posts {store} {
     return [lsort -command ::web::static::blog::compare_posts $rows]
 }
 
+# Read only the newest post's listing fields; directory stores share ordering.
+proc ::web::static::blog::latest_post {store} {
+    if {[dict get $store -connection] eq {}} {return [lindex [posts $store] 0]}
+    set query [db_where [db_select web_static_blog_items \
+        -columns {path parent_path item_type title source_path published_at}] [db_and \
+        [database_predicate $store] [db_eq [db_col item_type] [db_value page -type text]]]]
+    set query [db_limit [db_order_by $query [db_desc [db_col published_at]] [db_asc [db_col path]]] 1]
+    lindex [dict get [db_execute [dict get $store -connection] $query] rows] 0
+}
+
 proc ::web::static::blog::slug {text} {
     set text [string tolower [string trim $text]]
     regsub -all {[^a-z0-9[:space:]-]} $text {} text

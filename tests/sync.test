@@ -180,4 +180,36 @@ test sync-storage {stored references cannot silently switch image buckets} -setu
     ::web::static::blog::load $store /2026-11-11-guide
 } -cleanup sync_fixture::cleanup -returnCodes error -result {Stored image bucket differs from runtime configuration}
 
+test sync-latest {latest post matches listing order, including ties, domains and directory stores} -setup sync_fixture::setup -body {
+    ::web::static::blog::initdb $sync_fixture::db
+    foreach name {2026-11-12-z 2026-11-12-a} {
+        sync_fixture::write [file join $sync_fixture::root pages $name.md] {# Newer}
+    }
+    ::web::static::blog::sync $sync_fixture::store [file join $sync_fixture::root pages]
+    set post [::web::static::blog::latest_post $sync_fixture::store]
+    set directory [::web::static::blog::create -directory [file join $sync_fixture::root pages] \
+        -images-directory [file join $sync_fixture::root images] -s3 $sync_fixture::s3]
+    list [dict get $post path] [expr {$post eq [lindex [::web::static::blog::posts $sync_fixture::store] 0]}] \
+        [dict get [::web::static::blog::latest_post $directory] path] \
+        [::web::static::blog::latest_post [dict replace $sync_fixture::store -domain other]]
+} -cleanup sync_fixture::cleanup -result {/2026-11-12-a 1 /2026-11-12-a {}}
+
+test sync-prepared {prepared content imports without files or S3 calls and participates in caller rollback} -setup sync_fixture::setup -body {
+    ::web::static::blog::initdb $sync_fixture::db
+    set source [::web::static::blog::create -directory [file join $sync_fixture::root pages] \
+        -images-directory [file join $sync_fixture::root images] -s3 $sync_fixture::s3]
+    set items [dict get $source items]
+    file delete -force [file join $sync_fixture::root pages] [file join $sync_fixture::root images]
+    set sync_fixture::calls {}
+    set count [::web::static::blog::sync_prepared $sync_fixture::store $items]
+    dict set items /2026-11-11-guide title Changed
+    catch {::tpersist::db_transaction $sync_fixture::db {
+        ::web::static::blog::sync_prepared $sync_fixture::store $items
+        error rollback
+    }}
+    dict set items /2026-11-11-guide path /wrong
+    set invalid [catch {::web::static::blog::sync_prepared $sync_fixture::store $items}]
+    list $count [dict get [::web::static::blog::load $sync_fixture::store /2026-11-11-guide] title] $invalid $sync_fixture::calls
+} -cleanup sync_fixture::cleanup -result {2 Guide 1 {}}
+
 cleanupTests

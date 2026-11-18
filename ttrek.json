@@ -1,6 +1,6 @@
 {
   "name": "web-static-blog",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "scripts": {},
   "dependencies": {
     "tcl": ">=9.1.0,<10.0.0",

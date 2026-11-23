@@ -5,12 +5,12 @@
 # 
 
 # Load the static blog package and its storage dependencies.
-package require -exact web-static-blog::manifest 1.0.0
-package require Tcl 9.1
-package require cmark_gfm 0.1.0
-package require tpathexp 1.1.0
-package require tjson 1.0.26
-package require tpersist 0.1.4
+package require web-static-blog::manifest
+package require Tcl
+package require cmark_gfm
+package require tpathexp
+package require tjson
+package require tpersist
 
 namespace eval ::web::static::blog {
     variable root [file dirname [file dirname [info script]]]

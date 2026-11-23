@@ -28,7 +28,7 @@ ttrek install web-static-blog
 ```
 
 ```tcl
-package require web-static-blog 1.0.0
+package require web-static-blog
 set store [::web::static::blog::create -directory ./content/blog -title Blog]
 set router [::tpathexp::router]
 ::web::static::blog::mount $router -store $store -prefix /blog
@@ -87,7 +87,7 @@ Image hosting is optional. Pass `-s3` and, optionally, `-images-directory` to
 `create`. Without `-s3`, the existing Markdown rendering behavior is unchanged.
 
 ```tcl
-package require pure-tcl-aws-s3 1.0.0
+package require pure-tcl-aws-s3
 set s3 [::aws::s3::create {region eu-central-1}]
 set store [::web::static::blog::create -directory ./content/blog \
     -images-directory ./content/images \

@@ -10,7 +10,7 @@ package ifneeded web-static-blog 1.0.0 [list source [file join $dir library web-
 
 # Locate the manifest without loading application services.
 package ifneeded web-static-blog::manifest 1.0.0 [list apply {{dir} {
-    package require web-core 0.1.0
+    package require web-core
     ::web::core::register web-static-blog $dir
     package provide web-static-blog::manifest 1.0.0
 }} $dir]

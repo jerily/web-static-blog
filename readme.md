@@ -28,7 +28,7 @@ ttrek install web-static-blog
 ```
 
 ```tcl
-package require web-static-blog 0.1.5
+package require web-static-blog 1.0.0
 set store [::web::static::blog::create -directory ./content/blog -title Blog]
 set router [::tpathexp::router]
 ::web::static::blog::mount $router -store $store -prefix /blog
@@ -202,11 +202,9 @@ local behavior. There are no snapshot files to build, publish or load.
 
 ## Deferred loading
 
-`package require web-static-blog::routes 1.0` loads only route declarations.
-`::web::static::blog::route_specs prefix binding ?settings? ?policy?` returns
-`{methods pattern handlerPrefix}` records. `binding` is opaque: a host can bind
-its prepared configuration or a reference resolved by its dispatcher. Account
-routes use display settings and policy to select optional routes at startup.
+`::web::core::manifest web-static-blog` reads [api.json](api.json) without loading
+the application handlers. Pass the manifest, prefix and mount configuration to
+`::web::core::route_plan` to resolve bindings, middleware, and routes.
 
 `::web::static::blog::prepare_mount` accepts the same options as `mount`, without the
 router argument, and prepares resources without registering routes. The normal
